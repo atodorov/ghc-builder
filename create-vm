@@ -1,0 +1,73 @@
+#!/usr/bin/sh
+
+KS_OUT="builder.ks"
+SSH_KEY="builder.ssh"
+PXE_DIR="./builder-iso/images/pxeboot/"
+VMLINUZ="$PXE_DIR/vmlinuz"
+INITRD="$PXE_DIR/initrd.img"
+
+# Size in GB
+DISK_SIZE=20
+
+usage() {
+    echo "$0: <VM NAME> <BOOT ISO>"
+}
+
+die() {
+    echo "$1"
+    exit 1
+}
+
+# Don't overwrite an existing setup
+if [ -e "$KS_OUT" ] || [ -e "$SSH_KEY" ]; then
+    echo "ERROR: $KS_OUT and/or $SSH_KEY already exist. Remove or move them before creating a new VM."
+    exit 1
+fi
+
+# Need a vm name and boot.iso
+VM_NAME="$1"
+BOOT_ISO="$2"
+
+if [ -z "$VM_NAME" ] || [ -z "$BOOT_ISO" ]; then
+    usage
+    exit 1
+fi
+
+# Mount the iso so its vmlinuz and initamfs.img can be used
+# Specific to Fedora 26+, no support for anything else
+mkdir ./builder-iso
+sudo mount "$BOOT_ISO" ./builder-iso/ || die "Failed to mount $BOOT_ISO"
+
+if [ ! -e "$VMLINUZ" ] || [ ! -e "$INITRD" ]; then
+    echo "ERROR: $BOOT_ISO is missing $VMLINUZ or $INITRD. Check the iso to make sure it is Fedora 26 or later"
+    sudo umount ./builder-iso/
+fi
+
+# Need the iso name for stage2
+ISO_LABEL=$(blkid -s LABEL "$BOOT_ISO" | awk '{ print $2 }' | sed s/\"//g)
+if [ -z "$ISO_LABEL" ]; then
+    echo "ERROR: Could not determine the LABEL of $BOOT_ISO"
+    sudo umount ./builder-iso/
+    exit 1
+fi
+
+# Generate a new ssh key with no password.
+ssh-keygen -N "" -f builder.ssh || die "ERROR: Failed to create ssh key"
+
+# Create kickstart file with pubkey included for root user
+awk 'BEGIN{getline l < "builder.ssh.pub"}/SSH_PUBKEY/{gsub("SSH_PUBKEY",l)}1' builder.ks.in > builder.ks
+
+echo "Creating VM $VM_NAME using $BOOT_ISO (use virsh or vnc tools to track progress)"
+# Use virt-install to create the VM
+sudo virt-install --connect qemu:///system -n "$VM_NAME" -r 2048 --vcpus=4 -v --noautoconsole\
+    --vnc --accelerate --wait -1 \
+    --network=network:default --os-type=linux --os-variant=fedora23 --disk "size=$DISK_SIZE" \
+    --initrd-inject ./builder.ks \
+    --disk "path=$BOOT_ISO,device=cdrom" \
+    --extra-args "inst.ks=file:/builder.ks inst.cmdline stage2=HD:$ISO_LABEL" \
+    --location ./builder-iso/
+
+# Cleanup
+sudo umount ./builder-iso/
+
+sudo virsh domifaddr "$VM_NAME"

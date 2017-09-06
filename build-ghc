@@ -1,0 +1,25 @@
+#!/usr/bin/bash
+
+usage() {
+    echo "$0: <BUILDER IP>"
+}
+
+BUILDER_IP="$1"
+if [ -z "$BUILDER_IP" ]; then
+    usage
+    exit 1
+fi
+
+# Check out the latest version of the repo if it doesn't exist
+echo "Updating bdcs-copr repo"
+if [ ! -e ./bdcs-copr ]; then
+    git clone https://github.com/dashea/bdcs-copr.git
+else
+    pushd bdcs-copr
+    git pull
+    popd
+fi
+
+scp -i builder.ssh ./bdcs-copr/makedeps.sh ./bdcs-copr/mock.cfg root@$BUILDER_IP:/root/build-ghc/
+ssh -i builder.ssh root@$BUILDER_IP /root/build-ghc/makedeps.sh
+rsync -e "ssh -i builder.ssh" -aP root@$BUILDER_IP:/root/build-ghc/ ./bdcs-copr/

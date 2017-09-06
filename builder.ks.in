@@ -1,0 +1,33 @@
+# Minimal kickstart for Ansible Managed System
+lang en_US.UTF-8
+keyboard us
+timezone --utc America/New_York
+network --activate
+
+# VM is on a private network. Use rootpw --lock if it is accessable from a LAN
+rootpw --plaintext redhat
+#rootpw --lock
+sshkey --username root "SSH_PUBKEY"
+
+# partitioning - nuke and start fresh
+clearpart --all --initlabel
+autopart --type=plain --fstype=xfs
+bootloader --location=mbr
+shutdown
+
+url --mirrorlist=https://mirrors.fedoraproject.org/mirrorlist?repo=fedora-$releasever&arch=$basearch
+repo --name=fedora-updates --mirrorlist=https://mirrors.fedoraproject.org/mirrorlist?repo=updates-released-f$releasever&arch=$basearch
+
+services --enabled=sshd
+
+%packages
+@core
+@development-tools
+mock
+python2
+openssh-server
+cabal-rpm
+rpm-build
+createrepo_c
+git
+%end
