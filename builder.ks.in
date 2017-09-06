@@ -30,4 +30,5 @@ cabal-rpm
 rpm-build
 createrepo_c
 git
+rsync
 %end
