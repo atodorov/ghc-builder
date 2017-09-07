@@ -15,3 +15,16 @@ Setup a F26 VM for building ghc packages.
  * push-ghc
    This will push the results to a remote system. TBD.
 
+
+VM NETWORK PROBLEMS
+
+Some VM setups don't work as expected. If the VM isn't getting an IP the install won't
+work. Debugging using VNC will be required.
+
+Try switching the --network=network:default line to --network=bridge:br0 to see if
+that works. If that's the case then virsh domifaddr won't work and you will need to
+log in to find the IP address.
+
+*NOTE* If you use bridge:br0 CHANGE THE ROOT PASSWORD. It will be on the LAN and you
+don't want to leave it set to 'redhat'.
+

@@ -59,6 +59,8 @@ awk 'BEGIN{getline l < "builder.ssh.pub"}/SSH_PUBKEY/{gsub("SSH_PUBKEY",l)}1' bu
 
 echo "Creating VM $VM_NAME using $BOOT_ISO (use virsh or vnc tools to track progress)"
 # Use virt-install to create the VM
+# *NOTE* If the VM cannot get an IP, try --network=bridge:br0
+# *NOTE* But don't forget to change the ROOT PASSWORD since it will be visible on the LAN
 sudo virt-install --connect qemu:///system -n "$VM_NAME" -r 2048 --vcpus=4 -v --noautoconsole\
     --vnc --accelerate --wait -1 \
     --network=network:default --os-type=linux --os-variant=fedora23 --disk "size=$DISK_SIZE" \

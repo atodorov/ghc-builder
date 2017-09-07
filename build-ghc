@@ -20,6 +20,7 @@ else
     popd
 fi
 
+ssh -i builder.ssh root@$BUILDER_IP mkdir /root/build-ghc/
 scp -i builder.ssh ./bdcs-copr/makedeps.sh ./bdcs-copr/mock.cfg root@$BUILDER_IP:/root/build-ghc/
-ssh -i builder.ssh root@$BUILDER_IP /root/build-ghc/makedeps.sh
+ssh -i builder.ssh root@$BUILDER_IP "cd /root/build-ghc/; ./makedeps.sh"
 rsync -e "ssh -i builder.ssh" -aP root@$BUILDER_IP:/root/build-ghc/ ./bdcs-copr/
