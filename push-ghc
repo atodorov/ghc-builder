@@ -1,0 +1,48 @@
+#!/usr/bin/bash
+
+usage() {
+    echo "$0: <S3 BUCKET>"
+}
+
+S3_BUCKET="$1"
+if [ -z "$S3_BUCKET" ]; then
+    usage
+    exit 1
+fi
+
+if [ -z `which s3cmd 2>/dev/null` ]; then
+    echo "$0: ERROR: s3cmd not found!"
+    exit 1
+fi
+
+LOGIN_CREDENTIALS=""
+if [ -f ~/.s3cfg ]; then
+    echo "$0: INFO: ~/.s3cfg found! Using credentials from config file"
+
+    if [ -n "$AWS_ACCESS_KEY" ] && [ -n "$AWS_SECRET_KEY" ]; then
+        echo "$0: INFO: AWS_ACCESS_KEY & AWS_SECRET_KEY are defined. Overriding credentials from environment"
+        LOGIN_CREDENTIALS="--access_key $AWS_ACCESS_KEY --secret_key $AWS_SECRET_KEY"
+    fi
+else
+    echo "$0: INFO: ~/.s3cfg not found! Using credentials from environment"
+
+    if [ -z "$AWS_ACCESS_KEY" ]; then
+        echo "$0: ERROR: AWS_ACCESS_KEY environment variable is not defined"
+        exit 1
+    fi
+
+    if [ -z "$AWS_SECRET_KEY" ]; then
+        echo "$0: ERROR: AWS_SECRET_KEY environment variable is not defined"
+        exit 1
+    fi
+
+    LOGIN_CREDENTIALS="--access_key $AWS_ACCESS_KEY --secret_key $AWS_SECRET_KEY"
+fi
+
+# Check out the latest version of the repo if it doesn't exist
+if [ ! -e ./bdcs-copr/repo ]; then
+    echo "$0: ERROR: ./bdcs-copr/repo doesn't exist! Run ./build-ghc first!"
+    exit 1
+fi
+
+s3cmd sync $LOGIN_CREDENTIALS -v -P --delete-removed ./bdcs-copr/repo/ s3://$S3_BUCKET/bdcs-deps/
