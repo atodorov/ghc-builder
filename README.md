@@ -12,8 +12,11 @@ Setup a F26 VM for building ghc packages.
    This will build the ghc packages on the VM and and gather up all the results.
    Run it like so: `build-ghc <IP ADDRESS>`
 
- * push-ghc
-   This will push the results to a remote system. TBD.
+ * `push-ghc`
+   This will push the results to a remote system. Currently only Amazon S3 is supported.
+   `~/.s3cfg` is the default configuration file. `AWS_ACCESS_KEY` and `AWS_SECRET_KEY`
+   environment variables may be used to override the defaults.
+   Run it like so: `./push-ghc <S3_BUCKET_NAME>`
 
 
 VM NETWORK PROBLEMS
